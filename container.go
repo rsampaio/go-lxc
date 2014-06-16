@@ -362,6 +362,25 @@ func (c *Container) Start() error {
 	return nil
 }
 
+// Since lxc-start is not playing well with signals this function
+// should be removed soon in favor of c.Execute
+func (c *Container) StartCmd(args...string) (error) {
+	if err := c.makeSure(isNotDefined); err != nil {
+		return err
+	}
+
+	cargs := []string{"lxc-start", "-n", c.Name(), "-P", c.ConfigPath(), "--"}
+	cargs = append(cargs, args...)
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	cmd := exec.Command(cargs[0], cargs[1:]...)
+    if err := cmd.Start(); err != nil {
+		return ErrExecuteFailed
+	}
+	return cmd.Wait()
+}
+
 // Execute executes the given command in a temporary container.
 func (c *Container) Execute(args ...string) ([]byte, error) {
 	if err := c.makeSure(isNotDefined); err != nil {
